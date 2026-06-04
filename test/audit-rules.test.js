@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { analyzeCompletion, redactUrl, SCORING_RUBRIC } from '../dist/audit.js';
+import { providerFixtures } from './provider-fixtures.js';
 
 describe('audit rules and fixtures', () => {
   it('documents every scoring code only once', () => {
@@ -9,6 +10,28 @@ describe('audit rules and fixtures', () => {
     assert.ok(codes.includes('model_mismatch'));
     assert.ok(codes.includes('usage_missing'));
     assert.ok(codes.includes('stream_malformed_chunks'));
+    assert.ok(SCORING_RUBRIC.every((item) => item.category));
+  });
+
+  it('emits stable finding schema fields', () => {
+    const findings = analyzeCompletion({
+      requestedModel: 'requested-model',
+      response: {
+        id: 'chatcmpl_fixture',
+        model: 'different-model',
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }
+      },
+      latencyMs: 100,
+      headers: { requestId: null },
+      stream: null
+    });
+    const finding = findings.find((item) => item.code === 'model_mismatch');
+    assert.equal(finding.schemaVersion, 'finding.v1');
+    assert.equal(finding.category, 'model');
+    assert.equal(finding.docsSlug, 'model-mismatch');
+    assert.ok(finding.riskReason);
+    assert.ok(finding.recommendedAction);
+    assert.ok(finding.falsePositiveNotes);
   });
 
   it('flags inconsistent usage totals', () => {
@@ -58,4 +81,23 @@ describe('audit rules and fixtures', () => {
     assert.equal(result.hadCredentials, true);
     assert.equal(result.hadQuery, true);
   });
+
+  for (const fixture of providerFixtures) {
+    it(`handles provider fixture: ${fixture.name}`, () => {
+      const findings = analyzeCompletion({
+        requestedModel: fixture.requestedModel,
+        response: fixture.response,
+        latencyMs: 100,
+        headers: fixture.headers,
+        stream: fixture.stream
+      });
+      const codes = findings.map((item) => item.code);
+      for (const code of fixture.expected ?? []) {
+        assert.ok(codes.includes(code), `${fixture.name} should include ${code}`);
+      }
+      for (const code of fixture.expectedAbsent ?? []) {
+        assert.equal(codes.includes(code), false, `${fixture.name} should not include ${code}`);
+      }
+    });
+  }
 });

@@ -41,6 +41,8 @@ function parseArgs(argv) {
             args.model = next;
         else if (arg === '--prompt')
             args.prompt = next;
+        else if (arg === '--prompt-file')
+            args.promptFile = next;
         else if (arg === '--repeat')
             args.repeat = parseInteger(next, arg, 1, 20);
         else if (arg === '--timeout-ms')
@@ -75,6 +77,8 @@ async function loadConfig(path) {
         'api_key_env',
         'apiKeyEnv',
         'model',
+        'prompt_file',
+        'promptFile',
         'repeat',
         'stream',
         'timeout_ms',
@@ -91,6 +95,8 @@ async function loadConfig(path) {
         normalized.apiKeyEnv = config.api_key_env ?? config.apiKeyEnv;
     if (config.model)
         normalized.model = config.model;
+    if (config.prompt_file ?? config.promptFile)
+        normalized.promptFile = config.prompt_file ?? config.promptFile;
     if (config.repeat !== undefined)
         normalized.repeat = parseInteger(String(config.repeat), 'config.repeat', 1, 20);
     if (config.stream !== undefined)
@@ -103,7 +109,7 @@ async function loadConfig(path) {
 }
 function mergeConfig(defaultsAndCli, config, argv) {
     const merged = { ...defaultsAndCli, ...config };
-    const cliOnlyFlags = new Set(['--base-url', '--api-key-env', '--model', '--repeat', '--timeout-ms', '--out']);
+    const cliOnlyFlags = new Set(['--base-url', '--api-key-env', '--model', '--prompt-file', '--repeat', '--timeout-ms', '--out']);
     for (let i = 0; i < argv.length; i += 1) {
         const arg = argv[i];
         if (arg === '--stream')
@@ -120,6 +126,8 @@ function mergeConfig(defaultsAndCli, config, argv) {
                 merged.apiKeyEnv = value;
             else if (arg === '--model')
                 merged.model = value;
+            else if (arg === '--prompt-file')
+                merged.promptFile = value;
             else if (arg === '--repeat')
                 merged.repeat = defaultsAndCli.repeat;
             else if (arg === '--timeout-ms')
@@ -142,7 +150,7 @@ function parseInteger(value, name, min, max) {
     return parsed;
 }
 function helpText() {
-    return `llm-gateway-audit v0.1.2
+    return `llm-gateway-audit v0.2.0
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -155,6 +163,7 @@ Options:
   --config <path>        Safe JSON config file. Defaults to llm-gateway-audit.config.json when present.
   --model <model>        Requested model name
   --prompt <text>        Test prompt. The report stores only redacted metadata.
+  --prompt-file <path>   Read the test prompt from a local file. The report stores only redacted metadata.
   --repeat <n>           Number of calls, 1-20 (default: 1)
   --stream               Use stream mode
   --non-stream           Use non-stream mode (default)
@@ -180,6 +189,12 @@ async function main() {
         throw new Error('--base-url is required');
     if (!args.model)
         throw new Error('--model is required');
+    if (args.promptFile && argv.includes('--prompt')) {
+        throw new Error('--prompt and --prompt-file cannot be used together');
+    }
+    if (args.promptFile) {
+        args.prompt = await readFile(args.promptFile, 'utf8');
+    }
     if (args.dryRun) {
         const url = redactUrl(args.baseUrl);
         const endpoint = url.redacted === '[invalid-url]'

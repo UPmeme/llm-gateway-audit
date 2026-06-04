@@ -34,6 +34,17 @@ node ./dist/cli.js \
   --out reports/example
 ```
 
+Prompt from a local file:
+
+```bash
+node ./dist/cli.js \
+  --base-url "https://gateway.example.com" \
+  --model "gpt-4.1-mini" \
+  --prompt-file ./prompt.txt
+```
+
+The prompt file path and raw prompt content are not stored in reports.
+
 Stream mode:
 
 ```bash
@@ -99,6 +110,12 @@ Redacted examples are available in [`examples/reports`](examples/reports):
 - Model mismatch
 - Missing usage
 - Fake stream
+
+## Finding Schema
+
+Finding JSON uses a stable `finding.v1` shape with `code`, `category`, `severity`, `score`, redacted `evidence`, `riskReason`, `recommendedAction`, and `falsePositiveNotes`.
+
+See [`docs/finding-schema.md`](docs/finding-schema.md).
 
 ## Privacy Boundary
 

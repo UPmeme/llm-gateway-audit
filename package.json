@@ -1,6 +1,6 @@
 {
   "name": "llm-gateway-audit",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Audit OpenAI-compatible LLM gateways for transparency and suspicious response metadata.",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "files": [
     "dist",
     "src",
+    "docs",
     "examples",
     "README.md",
     "README.zh-CN.md",
@@ -34,6 +35,14 @@
   ],
   "author": "UPmeme",
   "license": "MIT",
+  "homepage": "https://github.com/UPmeme/llm-gateway-audit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UPmeme/llm-gateway-audit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/UPmeme/llm-gateway-audit/issues"
+  },
   "engines": {
     "node": ">=20"
   },

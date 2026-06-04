@@ -8,23 +8,23 @@ const REQUEST_ID_HEADERS = [
     'x-amzn-requestid'
 ];
 export const SCORING_RUBRIC = [
-    { code: 'model_mismatch', score: 30, severity: 'high', description: 'Response model differs from requested model.' },
-    { code: 'base_url_embedded_credentials', score: 30, severity: 'high', description: 'base_url contained username or password material.' },
-    { code: 'base_url_invalid', score: 30, severity: 'high', description: 'base_url is not a valid URL.' },
-    { code: 'stream_malformed_chunks', score: 25, severity: 'high', description: 'Stream contained malformed SSE JSON chunks.' },
-    { code: 'stream_no_chunks', score: 25, severity: 'high', description: 'Stream completed without valid chunks.' },
-    { code: 'usage_missing', score: 20, severity: 'medium', description: 'Non-stream response did not include usage.' },
-    { code: 'base_url_not_https', score: 20, severity: 'high', description: 'Remote base_url does not use HTTPS.' },
-    { code: 'response_model_missing', score: 15, severity: 'medium', description: 'Response did not include a model field.' },
-    { code: 'usage_token_fields_invalid', score: 15, severity: 'medium', description: 'Usage token fields are missing, negative, or non-integer.' },
-    { code: 'usage_total_inconsistent', score: 15, severity: 'medium', description: 'Usage total does not match prompt plus completion tokens.' },
-    { code: 'latency_very_high', score: 15, severity: 'medium', description: 'Request latency exceeded 30 seconds.' },
-    { code: 'base_url_query_present', score: 10, severity: 'medium', description: 'base_url contained query parameters.' },
-    { code: 'response_id_missing', score: 10, severity: 'medium', description: 'Response id is missing.' },
-    { code: 'system_fingerprint_missing', score: 5, severity: 'info', description: 'system_fingerprint is missing.' },
-    { code: 'request_id_header_missing', score: 5, severity: 'info', description: 'No recognizable request id header was returned.' },
-    { code: 'latency_high', score: 5, severity: 'low', description: 'Request latency exceeded 10 seconds.' },
-    { code: 'third_party_gateway', score: 0, severity: 'info', description: 'Third-party gateway review reminder.' }
+    { code: 'model_mismatch', category: 'model', score: 30, severity: 'high', description: 'Response model differs from requested model.' },
+    { code: 'base_url_embedded_credentials', category: 'privacy', score: 30, severity: 'high', description: 'base_url contained username or password material.' },
+    { code: 'base_url_invalid', category: 'configuration', score: 30, severity: 'high', description: 'base_url is not a valid URL.' },
+    { code: 'stream_malformed_chunks', category: 'stream', score: 25, severity: 'high', description: 'Stream contained malformed SSE JSON chunks.' },
+    { code: 'stream_no_chunks', category: 'stream', score: 25, severity: 'high', description: 'Stream completed without valid chunks.' },
+    { code: 'usage_missing', category: 'usage', score: 20, severity: 'medium', description: 'Non-stream response did not include usage.' },
+    { code: 'base_url_not_https', category: 'privacy', score: 20, severity: 'high', description: 'Remote base_url does not use HTTPS.' },
+    { code: 'response_model_missing', category: 'model', score: 15, severity: 'medium', description: 'Response did not include a model field.' },
+    { code: 'usage_token_fields_invalid', category: 'usage', score: 15, severity: 'medium', description: 'Usage token fields are missing, negative, or non-integer.' },
+    { code: 'usage_total_inconsistent', category: 'usage', score: 15, severity: 'medium', description: 'Usage total does not match prompt plus completion tokens.' },
+    { code: 'latency_very_high', category: 'latency', score: 15, severity: 'medium', description: 'Request latency exceeded 30 seconds.' },
+    { code: 'base_url_query_present', category: 'privacy', score: 10, severity: 'medium', description: 'base_url contained query parameters.' },
+    { code: 'response_id_missing', category: 'transparency', score: 10, severity: 'medium', description: 'Response id is missing.' },
+    { code: 'system_fingerprint_missing', category: 'transparency', score: 5, severity: 'info', description: 'system_fingerprint is missing.' },
+    { code: 'request_id_header_missing', category: 'transparency', score: 5, severity: 'info', description: 'No recognizable request id header was returned.' },
+    { code: 'latency_high', category: 'latency', score: 5, severity: 'low', description: 'Request latency exceeded 10 seconds.' },
+    { code: 'third_party_gateway', category: 'privacy', score: 0, severity: 'info', description: 'Third-party gateway review reminder.' }
 ];
 const FINDING_GUIDANCE = {
     model_mismatch: {
@@ -170,12 +170,23 @@ export function classifyBaseUrlRisk(rawUrl) {
     return { redacted, findings };
 }
 export function finding(code, severity, score, message, evidence = {}) {
+    const rubric = SCORING_RUBRIC.find((item) => item.code === code);
     const guidance = FINDING_GUIDANCE[code] ?? {
         riskReason: 'This signal may reduce gateway transparency.',
         recommendedAction: 'Review the redacted evidence and repeat the audit if the result matters.',
         falsePositiveNotes: 'Provider-specific behavior may explain this finding.'
     };
-    return { code, severity, score, message, evidence, ...guidance };
+    return {
+        schemaVersion: 'finding.v1',
+        code,
+        category: rubric?.category ?? 'unknown',
+        severity,
+        score,
+        message,
+        evidence,
+        docsSlug: code.replaceAll('_', '-'),
+        ...guidance
+    };
 }
 export function scoreFindings(findings) {
     const score = Math.min(100, findings.reduce((sum, item) => sum + item.score, 0));
@@ -270,7 +281,7 @@ export async function callChatCompletion(options) {
         headers: {
             'authorization': `Bearer ${options.apiKey}`,
             'content-type': 'application/json',
-            'user-agent': 'llm-gateway-audit/0.1.2'
+            'user-agent': 'llm-gateway-audit/0.2.0'
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(options.timeoutMs)
@@ -370,7 +381,8 @@ export async function runAudit(options) {
     const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
     return {
         tool: 'llm-gateway-audit',
-        version: '0.1.2',
+        version: '0.2.0',
+        schemaVersion: 'audit-report.v1',
         generatedAt: new Date().toISOString(),
         privacy: {
             promptStored: false,

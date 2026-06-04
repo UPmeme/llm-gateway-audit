@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - 2026-06-05
+
+- Added stable report schema metadata with `audit-report.v1` and `finding.v1`.
+- Added finding categories and documentation slugs.
+- Added `--prompt-file` to read test prompts from local files without storing prompt contents or file paths in reports.
+- Added provider compatibility fixtures for OpenAI-standard, LiteLLM-style aliases, one-api style metadata gaps, OpenRouter-style ids, Azure-like omitted model metadata, and stream-compatible chunks.
+- Added `docs/finding-schema.md`.
+- Added npm package metadata: repository, homepage, and bugs.
+
 ## 0.1.2 - 2026-06-05
 
 - Added `--dry-run` to print a redacted request plan without sending a request.

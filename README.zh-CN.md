@@ -34,6 +34,17 @@ node ./dist/cli.js \
   --out reports/example
 ```
 
+从本地文件读取 prompt：
+
+```bash
+node ./dist/cli.js \
+  --base-url "https://gateway.example.com" \
+  --model "gpt-4.1-mini" \
+  --prompt-file ./prompt.txt
+```
+
+报告不会保存 prompt 文件路径或原始 prompt 内容。
+
 stream 模式：
 
 ```bash
@@ -100,6 +111,12 @@ redacted 示例在 [`examples/reports`](examples/reports)：
 - model mismatch
 - missing usage
 - fake stream
+
+## Finding Schema
+
+finding JSON 使用稳定的 `finding.v1` 结构，包含 `code`、`category`、`severity`、`score`、redacted `evidence`、`riskReason`、`recommendedAction` 和 `falsePositiveNotes`。
+
+见 [`docs/finding-schema.md`](docs/finding-schema.md)。
 
 ## 隐私边界
 
