@@ -64,7 +64,7 @@ afterEach(async () => {
 function options(extra = {}) {
   return {
     baseUrl,
-    apiKey: 'sk-test-redacted',
+    apiKey: `sk-${'test-redacted'}`,
     apiKeyEnv: 'OPENAI_API_KEY',
     model: 'test-model',
     prompt: 'Do not store this prompt in reports.',

@@ -130,6 +130,14 @@ finding JSON 使用稳定的 `finding.v1` 结构，包含 `code`、`category`、
 node ./dist/cli.js --compare-report reports/baseline.json reports/gateway.json
 ```
 
+公开分享前验证 redacted JSON 报告：
+
+```bash
+node ./dist/cli.js --validate-report reports/gateway.json
+```
+
+npm 发布前使用 [`docs/npm-publish-checklist.md`](docs/npm-publish-checklist.md)。
+
 ## 隐私边界
 
 默认输出报告会做 redaction：

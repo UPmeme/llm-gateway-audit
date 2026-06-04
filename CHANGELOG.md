@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 - 2026-06-05
+
+- Added `--validate-report <report.json>` for pre-sharing report validation.
+- Added `report-validation.v1` output and JSON schema.
+- Added validation tests for safe reports and redaction risks.
+- Added `docs/npm-publish-checklist.md`.
+- Updated field-test and README docs with report validation guidance.
+
 ## 0.2.1 - 2026-06-05
 
 - Added `--compare-report <baseline.json> <candidate.json>` for redacted report comparison without sending new requests.

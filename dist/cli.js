@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { access, readFile } from 'node:fs/promises';
-import { compareAuditReports, runAudit, writeReports, redactUrl } from './audit.js';
+import { compareAuditReports, runAudit, validateAuditReport, writeReports, redactUrl } from './audit.js';
 function parseArgs(argv) {
     const args = {
         apiKeyEnv: 'OPENAI_API_KEY',
@@ -27,6 +27,15 @@ function parseArgs(argv) {
             }
             args.compareReport = [baseline, candidate];
             i += 2;
+            continue;
+        }
+        if (arg === '--validate-report') {
+            const reportPath = argv[i + 1];
+            if (!reportPath || reportPath.startsWith('--')) {
+                throw new Error('--validate-report requires one report path.');
+            }
+            args.validateReport = reportPath;
+            i += 1;
             continue;
         }
         if (arg === '--stream') {
@@ -160,7 +169,7 @@ function parseInteger(value, name, min, max) {
     return parsed;
 }
 function helpText() {
-    return `llm-gateway-audit v0.2.1
+    return `llm-gateway-audit v0.2.2
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -182,6 +191,8 @@ Options:
   --dry-run              Print the redacted request plan without sending a request.
   --compare-report <baseline.json> <candidate.json>
                          Compare two redacted JSON audit reports without sending requests.
+  --validate-report <report.json>
+                         Validate a redacted JSON audit report before sharing it.
   --help                 Show help
 
 Boundary:
@@ -199,6 +210,13 @@ async function main() {
         const baseline = JSON.parse(await readFile(parsedArgs.compareReport[0], 'utf8'));
         const candidate = JSON.parse(await readFile(parsedArgs.compareReport[1], 'utf8'));
         console.log(JSON.stringify(compareAuditReports(baseline, candidate), null, 2));
+        return;
+    }
+    if (parsedArgs.validateReport) {
+        const report = JSON.parse(await readFile(parsedArgs.validateReport, 'utf8'));
+        const validation = validateAuditReport(report);
+        console.log(JSON.stringify(validation, null, 2));
+        process.exitCode = validation.valid ? 0 : 1;
         return;
     }
     const config = await loadConfig(parsedArgs.config);

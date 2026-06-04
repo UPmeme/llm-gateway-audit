@@ -40,3 +40,10 @@
 ## Boundary
 
 Findings are audit evidence and transparency signals. They cannot definitively prove model substitution or the true upstream model.
+
+Related schemas:
+
+- [`schemas/audit-report.v1.schema.json`](../schemas/audit-report.v1.schema.json)
+- [`schemas/finding.v1.schema.json`](../schemas/finding.v1.schema.json)
+- [`schemas/report-comparison.v1.schema.json`](../schemas/report-comparison.v1.schema.json)
+- [`schemas/report-validation.v1.schema.json`](../schemas/report-validation.v1.schema.json)

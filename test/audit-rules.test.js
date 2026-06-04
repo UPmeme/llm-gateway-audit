@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { analyzeCompletion, compareAuditReports, redactUrl, SCORING_RUBRIC } from '../dist/audit.js';
+import { analyzeCompletion, compareAuditReports, redactUrl, SCORING_RUBRIC, validateAuditReport } from '../dist/audit.js';
 import { providerFixtures } from './provider-fixtures.js';
 
 describe('audit rules and fixtures', () => {
@@ -107,6 +107,61 @@ describe('audit rules and fixtures', () => {
     assert.deepEqual(comparison.delta.addedFindings, ['model_mismatch']);
     assert.equal(comparison.delta.responseModelsChanged, true);
     assert.equal(comparison.privacy.promptStored, false);
+  });
+
+  it('validates a safe redacted audit report', () => {
+    const report = {
+      tool: 'llm-gateway-audit',
+      version: '0.2.2',
+      schemaVersion: 'audit-report.v1',
+      privacy: {
+        promptStored: false,
+        apiKeyStored: false,
+        rawResponseBodyStored: false,
+        promptLength: 12
+      },
+      target: {
+        baseUrl: 'https://gateway.example.com',
+        baseUrlHost: 'gateway.example.com',
+        apiKeyEnv: 'OPENAI_API_KEY',
+        apiKey: 'tes...[redacted]...alue',
+        model: 'gpt-4.1-mini'
+      },
+      summary: { suspiciousScore: 0, riskLevel: 'low' },
+      runs: []
+    };
+    const validation = validateAuditReport(report);
+    assert.equal(validation.schemaVersion, 'report-validation.v1');
+    assert.equal(validation.valid, true);
+    assert.equal(validation.issueCount, 0);
+  });
+
+  it('flags unsafe report redaction risks', () => {
+    const report = {
+      tool: 'llm-gateway-audit',
+      version: '0.2.2',
+      schemaVersion: 'audit-report.v1',
+      privacy: {
+        promptStored: true,
+        apiKeyStored: false,
+        rawResponseBodyStored: false,
+        promptLength: 12
+      },
+      target: {
+        baseUrl: 'https://gateway.example.com?token=secret',
+        baseUrlHost: 'gateway.example.com',
+        apiKeyEnv: 'OPENAI_API_KEY',
+        apiKey: `sk-${'test-secret-value'}`,
+        model: 'gpt-4.1-mini'
+      },
+      summary: { suspiciousScore: 0, riskLevel: 'low' },
+      runs: [{ findings: [{ code: 'model_mismatch' }] }]
+    };
+    const validation = validateAuditReport(report);
+    assert.equal(validation.valid, false);
+    assert.ok(validation.issues.some((item) => item.code === 'prompt_stored_flag_invalid'));
+    assert.ok(validation.issues.some((item) => item.code === 'api_key_looks_unredacted'));
+    assert.ok(validation.issues.some((item) => item.code === 'finding_schema_version_invalid'));
   });
 
   for (const fixture of providerFixtures) {

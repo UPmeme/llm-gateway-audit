@@ -129,6 +129,14 @@ Compare two redacted JSON reports without sending new requests:
 node ./dist/cli.js --compare-report reports/baseline.json reports/gateway.json
 ```
 
+Validate a redacted JSON report before sharing it:
+
+```bash
+node ./dist/cli.js --validate-report reports/gateway.json
+```
+
+Before npm publishing, use [`docs/npm-publish-checklist.md`](docs/npm-publish-checklist.md).
+
 ## Privacy Boundary
 
 Reports are redacted by default:

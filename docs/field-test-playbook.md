@@ -72,6 +72,16 @@ node ./dist/cli.js \
 
 The comparison highlights score deltas, added/resolved finding codes, response model changes, and usage-presence changes.
 
+## Validate Before Sharing
+
+Before sharing a JSON report, run:
+
+```bash
+node ./dist/cli.js --validate-report reports/gateway.json
+```
+
+This checks report shape and common redaction risks. It does not prove that every possible sensitive value has been removed, so still review manually.
+
 ## Interpreting Results
 
 - `model_mismatch` is strong transparency evidence, but still check whether the gateway documents aliases.
@@ -87,5 +97,6 @@ Before posting a report:
 - Confirm no real prompt is present.
 - Confirm no API key is present.
 - Confirm `base_url` query strings and credentials are redacted.
+- Run `--validate-report` and review any issues.
 - Confirm screenshots do not show browser accounts, local paths, tokens, or private environment details.
 - Include the caveat that the report shows suspicious evidence and transparency gaps, not proof of true model identity.

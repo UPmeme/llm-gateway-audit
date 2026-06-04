@@ -281,7 +281,7 @@ export async function callChatCompletion(options) {
         headers: {
             'authorization': `Bearer ${options.apiKey}`,
             'content-type': 'application/json',
-            'user-agent': 'llm-gateway-audit/0.2.1'
+            'user-agent': 'llm-gateway-audit/0.2.2'
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(options.timeoutMs)
@@ -381,7 +381,7 @@ export async function runAudit(options) {
     const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
     return {
         tool: 'llm-gateway-audit',
-        version: '0.2.1',
+        version: '0.2.2',
         schemaVersion: 'audit-report.v1',
         generatedAt: new Date().toISOString(),
         privacy: {
@@ -505,6 +505,71 @@ export function compareAuditReports(baseline, candidate) {
         },
         caveat: 'This comparison uses redacted audit reports. It highlights metadata and transparency differences, not proof of real model identity.'
     };
+}
+export function validateAuditReport(report) {
+    const issues = [];
+    if (report?.schemaVersion !== 'audit-report.v1') {
+        issues.push(validationIssue('schema_version_invalid', 'high', 'Report schemaVersion must be audit-report.v1.'));
+    }
+    if (report?.tool !== 'llm-gateway-audit') {
+        issues.push(validationIssue('tool_invalid', 'medium', 'Report tool must be llm-gateway-audit.'));
+    }
+    if (report?.privacy?.promptStored !== false) {
+        issues.push(validationIssue('prompt_stored_flag_invalid', 'high', 'Report privacy.promptStored must be false.'));
+    }
+    if (report?.privacy?.apiKeyStored !== false) {
+        issues.push(validationIssue('api_key_stored_flag_invalid', 'high', 'Report privacy.apiKeyStored must be false.'));
+    }
+    if (report?.privacy?.rawResponseBodyStored !== false) {
+        issues.push(validationIssue('raw_response_body_flag_invalid', 'high', 'Report privacy.rawResponseBodyStored must be false.'));
+    }
+    if (typeof report?.privacy?.promptLength !== 'number' || report.privacy.promptLength < 0) {
+        issues.push(validationIssue('prompt_length_invalid', 'medium', 'Report privacy.promptLength must be a non-negative number.'));
+    }
+    if (typeof report?.target?.apiKey === 'string' && /^(sk-|sess-|ghp_|github_pat_)/i.test(report.target.apiKey)) {
+        issues.push(validationIssue('api_key_looks_unredacted', 'critical', 'Report target.apiKey looks like an unredacted secret.'));
+    }
+    if (typeof report?.target?.baseUrl === 'string' && /[?&](api[_-]?key|token|key|secret)=/i.test(report.target.baseUrl)) {
+        issues.push(validationIssue('base_url_query_secret_like', 'high', 'Report target.baseUrl contains secret-like query parameters.'));
+    }
+    for (const [runIndex, run] of (report?.runs ?? []).entries()) {
+        for (const [findingIndex, item] of (run.findings ?? []).entries()) {
+            if (item.schemaVersion !== 'finding.v1') {
+                issues.push(validationIssue('finding_schema_version_invalid', 'medium', `Finding at run ${runIndex + 1}, index ${findingIndex + 1} must use finding.v1.`));
+            }
+            for (const field of ['code', 'category', 'severity', 'message', 'riskReason', 'recommendedAction', 'falsePositiveNotes']) {
+                if (!item[field]) {
+                    issues.push(validationIssue('finding_required_field_missing', 'medium', `Finding at run ${runIndex + 1}, index ${findingIndex + 1} is missing ${field}.`));
+                }
+            }
+        }
+    }
+    const serialized = JSON.stringify(report);
+    const suspiciousPatterns = [
+        { code: 'secret_like_openai_key', pattern: /sk-[A-Za-z0-9_-]{12,}/ },
+        { code: 'secret_like_github_token', pattern: /(ghp_|github_pat_)[A-Za-z0-9_]+/ },
+        { code: 'authorization_header_present', pattern: /authorization["'\s:]+bearer/i }
+    ];
+    for (const item of suspiciousPatterns) {
+        if (item.pattern.test(serialized)) {
+            issues.push(validationIssue(item.code, 'critical', `Report contains ${item.code}.`));
+        }
+    }
+    return {
+        schemaVersion: 'report-validation.v1',
+        valid: issues.length === 0,
+        issueCount: issues.length,
+        issues,
+        privacy: {
+            promptStored: false,
+            apiKeyStored: false,
+            rawResponseBodyStored: false
+        },
+        caveat: 'Validation checks report shape and common redaction risks. It cannot prove that all sensitive data has been removed.'
+    };
+}
+function validationIssue(code, severity, message) {
+    return { code, severity, message };
 }
 function collectFindingCodes(report) {
     return (report?.runs ?? []).flatMap((run) => (run.findings ?? []).map((item) => item.code)).filter(Boolean);
