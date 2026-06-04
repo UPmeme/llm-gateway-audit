@@ -1,0 +1,35 @@
+{
+  "name": "llm-gateway-audit",
+  "version": "0.1.0",
+  "description": "Audit OpenAI-compatible LLM gateways for transparency and suspicious response metadata.",
+  "type": "module",
+  "bin": {
+    "llm-gateway-audit": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "README.zh-CN.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/mock-gateway.test.js",
+    "start": "node ./dist/cli.js",
+    "audit": "node ./dist/cli.js"
+  },
+  "keywords": [
+    "llm",
+    "gateway",
+    "audit",
+    "openai-compatible",
+    "transparency"
+  ],
+  "author": "UPmeme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

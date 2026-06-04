@@ -1,0 +1,26 @@
+name: Audit check proposal
+description: Suggest a new transparency or suspicious-risk check.
+title: "[Check]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: signal
+    attributes:
+      label: Signal
+      description: What evidence should the tool inspect?
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk rationale
+      description: Why does this indicate a transparency or suspicious behavior risk?
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy considerations
+      description: How can this be tested and reported without exposing private prompts, keys, or logs?
+    validations:
+      required: true

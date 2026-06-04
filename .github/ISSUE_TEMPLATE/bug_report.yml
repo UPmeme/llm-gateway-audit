@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem with redacted evidence.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, private prompts, private logs, or non-redacted reports.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: redacted-evidence
+    attributes:
+      label: Redacted evidence
+      description: Paste only redacted report snippets or mock reproduction details.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use mock or redacted data.
+    validations:
+      required: true
