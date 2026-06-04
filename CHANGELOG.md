@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 - 2026-06-05
+
+- Added `--compare-report <baseline.json> <candidate.json>` for redacted report comparison without sending new requests.
+- Added `report-comparison.v1` output.
+- Added machine-readable JSON schemas for `audit-report.v1`, `finding.v1`, and `report-comparison.v1`.
+- Added `docs/field-test-playbook.md` for safer real-gateway validation.
+- Added tests for report comparison.
+
 ## 0.2.0 - 2026-06-05
 
 - Added stable report schema metadata with `audit-report.v1` and `finding.v1`.

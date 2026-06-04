@@ -281,7 +281,7 @@ export async function callChatCompletion(options) {
         headers: {
             'authorization': `Bearer ${options.apiKey}`,
             'content-type': 'application/json',
-            'user-agent': 'llm-gateway-audit/0.2.0'
+            'user-agent': 'llm-gateway-audit/0.2.1'
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(options.timeoutMs)
@@ -381,7 +381,7 @@ export async function runAudit(options) {
     const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
     return {
         tool: 'llm-gateway-audit',
-        version: '0.2.0',
+        version: '0.2.1',
         schemaVersion: 'audit-report.v1',
         generatedAt: new Date().toISOString(),
         privacy: {
@@ -472,4 +472,61 @@ export function renderMarkdown(report) {
 }
 function ensureTrailingSlash(value) {
     return value.endsWith('/') ? value : `${value}/`;
+}
+export function compareAuditReports(baseline, candidate) {
+    const baselineCodes = collectFindingCodes(baseline);
+    const candidateCodes = collectFindingCodes(candidate);
+    const baselineSet = new Set(baselineCodes);
+    const candidateSet = new Set(candidateCodes);
+    const addedFindings = [...candidateSet].filter((code) => !baselineSet.has(code)).sort();
+    const resolvedFindings = [...baselineSet].filter((code) => !candidateSet.has(code)).sort();
+    const commonFindings = [...candidateSet].filter((code) => baselineSet.has(code)).sort();
+    const baselineModels = collectResponseModels(baseline);
+    const candidateModels = collectResponseModels(candidate);
+    const baselineScore = baseline?.summary?.suspiciousScore ?? null;
+    const candidateScore = candidate?.summary?.suspiciousScore ?? null;
+    return {
+        schemaVersion: 'report-comparison.v1',
+        generatedAt: new Date().toISOString(),
+        privacy: {
+            promptStored: false,
+            apiKeyStored: false,
+            rawResponseBodyStored: false
+        },
+        baseline: summarizeReportForComparison(baseline),
+        candidate: summarizeReportForComparison(candidate),
+        delta: {
+            suspiciousScore: baselineScore === null || candidateScore === null ? null : candidateScore - baselineScore,
+            addedFindings,
+            resolvedFindings,
+            commonFindings,
+            responseModelsChanged: JSON.stringify(baselineModels) !== JSON.stringify(candidateModels),
+            usagePresenceChanged: collectUsagePresence(baseline).join(',') !== collectUsagePresence(candidate).join(',')
+        },
+        caveat: 'This comparison uses redacted audit reports. It highlights metadata and transparency differences, not proof of real model identity.'
+    };
+}
+function collectFindingCodes(report) {
+    return (report?.runs ?? []).flatMap((run) => (run.findings ?? []).map((item) => item.code)).filter(Boolean);
+}
+function collectResponseModels(report) {
+    return [...new Set((report?.runs ?? []).map((run) => run.responseModel ?? null))];
+}
+function collectUsagePresence(report) {
+    return (report?.runs ?? []).map((run) => Boolean(run.usage));
+}
+function summarizeReportForComparison(report) {
+    return {
+        schemaVersion: report?.schemaVersion ?? null,
+        toolVersion: report?.version ?? null,
+        targetHost: report?.target?.baseUrlHost ?? null,
+        targetBaseUrl: report?.target?.baseUrl ?? null,
+        requestedModel: report?.target?.model ?? null,
+        suspiciousScore: report?.summary?.suspiciousScore ?? null,
+        riskLevel: report?.summary?.riskLevel ?? null,
+        runCount: report?.runs?.length ?? 0,
+        responseModels: collectResponseModels(report),
+        usagePresentByRun: collectUsagePresence(report),
+        findingCodes: [...new Set(collectFindingCodes(report))].sort()
+    };
 }

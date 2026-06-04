@@ -117,6 +117,18 @@ Finding JSON uses a stable `finding.v1` shape with `code`, `category`, `severity
 
 See [`docs/finding-schema.md`](docs/finding-schema.md).
 
+Machine-readable JSON schemas are available in [`schemas`](schemas).
+
+## Field Testing
+
+Use [`docs/field-test-playbook.md`](docs/field-test-playbook.md) before testing real gateways. It covers temporary keys, harmless prompts, dry-run, stream/non-stream audits, and redacted report comparison.
+
+Compare two redacted JSON reports without sending new requests:
+
+```bash
+node ./dist/cli.js --compare-report reports/baseline.json reports/gateway.json
+```
+
 ## Privacy Boundary
 
 Reports are redacted by default:

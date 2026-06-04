@@ -118,6 +118,18 @@ finding JSON 使用稳定的 `finding.v1` 结构，包含 `code`、`category`、
 
 见 [`docs/finding-schema.md`](docs/finding-schema.md)。
 
+机器可读 JSON schemas 在 [`schemas`](schemas)。
+
+## Field Testing
+
+测试真实 gateway 前，先看 [`docs/field-test-playbook.md`](docs/field-test-playbook.md)。里面包括临时 key、无害 prompt、dry-run、stream/non-stream 审计和 redacted report comparison。
+
+不发送新请求，比较两个 redacted JSON 报告：
+
+```bash
+node ./dist/cli.js --compare-report reports/baseline.json reports/gateway.json
+```
+
 ## 隐私边界
 
 默认输出报告会做 redaction：

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/UPmeme/llm-gateway-audit/schemas/finding.v1.schema.json",
+  "title": "llm-gateway-audit finding.v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "code",
+    "category",
+    "severity",
+    "score",
+    "message",
+    "evidence",
+    "docsSlug",
+    "riskReason",
+    "recommendedAction",
+    "falsePositiveNotes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "finding.v1" },
+    "code": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "category": {
+      "type": "string",
+      "enum": ["model", "usage", "stream", "latency", "privacy", "transparency", "configuration", "unknown"]
+    },
+    "severity": { "type": "string", "enum": ["info", "low", "medium", "high"] },
+    "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "message": { "type": "string" },
+    "evidence": { "type": "object" },
+    "docsSlug": { "type": "string" },
+    "riskReason": { "type": "string" },
+    "recommendedAction": { "type": "string" },
+    "falsePositiveNotes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

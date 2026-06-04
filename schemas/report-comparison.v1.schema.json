@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/UPmeme/llm-gateway-audit/schemas/report-comparison.v1.schema.json",
+  "title": "llm-gateway-audit report-comparison.v1",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "privacy", "baseline", "candidate", "delta", "caveat"],
+  "properties": {
+    "schemaVersion": { "const": "report-comparison.v1" },
+    "generatedAt": { "type": "string" },
+    "privacy": {
+      "type": "object",
+      "required": ["promptStored", "apiKeyStored", "rawResponseBodyStored"],
+      "properties": {
+        "promptStored": { "const": false },
+        "apiKeyStored": { "const": false },
+        "rawResponseBodyStored": { "const": false }
+      }
+    },
+    "baseline": { "type": "object" },
+    "candidate": { "type": "object" },
+    "delta": {
+      "type": "object",
+      "required": ["suspiciousScore", "addedFindings", "resolvedFindings", "commonFindings"],
+      "properties": {
+        "suspiciousScore": { "type": ["integer", "null"] },
+        "addedFindings": { "type": "array", "items": { "type": "string" } },
+        "resolvedFindings": { "type": "array", "items": { "type": "string" } },
+        "commonFindings": { "type": "array", "items": { "type": "string" } },
+        "responseModelsChanged": { "type": "boolean" },
+        "usagePresenceChanged": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "caveat": { "type": "string" }
+  },
+  "additionalProperties": true
+}

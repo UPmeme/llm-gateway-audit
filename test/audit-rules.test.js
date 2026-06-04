@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { analyzeCompletion, redactUrl, SCORING_RUBRIC } from '../dist/audit.js';
+import { analyzeCompletion, compareAuditReports, redactUrl, SCORING_RUBRIC } from '../dist/audit.js';
 import { providerFixtures } from './provider-fixtures.js';
 
 describe('audit rules and fixtures', () => {
@@ -80,6 +80,33 @@ describe('audit rules and fixtures', () => {
     assert.equal(result.redacted, 'https://gateway.example.test/v1');
     assert.equal(result.hadCredentials, true);
     assert.equal(result.hadQuery, true);
+  });
+
+  it('compares redacted audit reports', () => {
+    const baseline = {
+      schemaVersion: 'audit-report.v1',
+      version: '0.2.1',
+      target: { baseUrlHost: 'api.openai.com', baseUrl: 'https://api.openai.com', model: 'gpt-4.1-mini' },
+      summary: { suspiciousScore: 0, riskLevel: 'low' },
+      runs: [{ responseModel: 'gpt-4.1-mini', usage: { total_tokens: 10 }, findings: [] }]
+    };
+    const candidate = {
+      schemaVersion: 'audit-report.v1',
+      version: '0.2.1',
+      target: { baseUrlHost: 'gateway.example.com', baseUrl: 'https://gateway.example.com', model: 'gpt-4.1-mini' },
+      summary: { suspiciousScore: 30, riskLevel: 'medium' },
+      runs: [{
+        responseModel: 'different-model',
+        usage: { total_tokens: 10 },
+        findings: [{ code: 'model_mismatch' }]
+      }]
+    };
+    const comparison = compareAuditReports(baseline, candidate);
+    assert.equal(comparison.schemaVersion, 'report-comparison.v1');
+    assert.equal(comparison.delta.suspiciousScore, 30);
+    assert.deepEqual(comparison.delta.addedFindings, ['model_mismatch']);
+    assert.equal(comparison.delta.responseModelsChanged, true);
+    assert.equal(comparison.privacy.promptStored, false);
   });
 
   for (const fixture of providerFixtures) {

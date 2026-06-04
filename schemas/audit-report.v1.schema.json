@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/UPmeme/llm-gateway-audit/schemas/audit-report.v1.schema.json",
+  "title": "llm-gateway-audit audit-report.v1",
+  "type": "object",
+  "required": ["tool", "version", "schemaVersion", "generatedAt", "privacy", "target", "summary", "runs"],
+  "properties": {
+    "tool": { "const": "llm-gateway-audit" },
+    "version": { "type": "string" },
+    "schemaVersion": { "const": "audit-report.v1" },
+    "generatedAt": { "type": "string" },
+    "privacy": {
+      "type": "object",
+      "required": ["promptStored", "apiKeyStored", "rawResponseBodyStored", "promptLength"],
+      "properties": {
+        "promptStored": { "const": false },
+        "apiKeyStored": { "const": false },
+        "rawResponseBodyStored": { "const": false },
+        "promptLength": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "target": {
+      "type": "object",
+      "required": ["baseUrl", "baseUrlHost", "apiKeyEnv", "apiKey", "model"],
+      "properties": {
+        "baseUrl": { "type": "string" },
+        "baseUrlHost": { "type": ["string", "null"] },
+        "apiKeyEnv": { "type": "string" },
+        "apiKey": { "type": ["string", "null"] },
+        "model": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object",
+      "required": ["repeat", "stream", "suspiciousScore", "riskLevel", "caveat"],
+      "properties": {
+        "repeat": { "type": "integer", "minimum": 1 },
+        "stream": { "type": "boolean" },
+        "suspiciousScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "riskLevel": { "type": "string" },
+        "caveat": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "mode", "requestedModel", "latencyMs", "findings", "risk"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "mode": { "type": "string", "enum": ["stream", "non-stream"] },
+          "requestedModel": { "type": "string" },
+          "responseModel": { "type": ["string", "null"] },
+          "latencyMs": { "type": "integer", "minimum": 0 },
+          "findings": { "type": "array" },
+          "risk": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

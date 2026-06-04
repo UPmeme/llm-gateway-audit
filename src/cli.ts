@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { access, readFile } from 'node:fs/promises';
-import { runAudit, writeReports, redactUrl } from './audit.js';
+import { compareAuditReports, runAudit, writeReports, redactUrl } from './audit.js';
 
 interface CliArgs {
   help?: boolean;
@@ -14,6 +14,7 @@ interface CliArgs {
   timeoutMs: number;
   out: string;
   config?: string;
+  compareReport?: string[];
   dryRun: boolean;
 }
 
@@ -32,6 +33,16 @@ function parseArgs(argv: string[]): CliArgs {
     if (arg === '--help' || arg === '-h') return { ...args, help: true };
     if (arg === '--dry-run') {
       args.dryRun = true;
+      continue;
+    }
+    if (arg === '--compare-report') {
+      const baseline = argv[i + 1];
+      const candidate = argv[i + 2];
+      if (!baseline || !candidate || baseline.startsWith('--') || candidate.startsWith('--')) {
+        throw new Error('--compare-report requires two report paths: <baseline.json> <candidate.json>');
+      }
+      args.compareReport = [baseline, candidate];
+      i += 2;
       continue;
     }
     if (arg === '--stream') {
@@ -138,7 +149,7 @@ function parseInteger(value: string, name: string, min: number, max: number): nu
 }
 
 function helpText(): string {
-  return `llm-gateway-audit v0.2.0
+  return `llm-gateway-audit v0.2.1
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -158,6 +169,8 @@ Options:
   --timeout-ms <n>       Request timeout, 1000-300000 (default: 60000)
   --out <path>           Output path without extension (default: reports/audit-<timestamp>)
   --dry-run              Print the redacted request plan without sending a request.
+  --compare-report <baseline.json> <candidate.json>
+                         Compare two redacted JSON audit reports without sending requests.
   --help                 Show help
 
 Boundary:
@@ -170,6 +183,12 @@ async function main(): Promise<void> {
   const parsedArgs = parseArgs(argv);
   if (parsedArgs.help) {
     console.log(helpText());
+    return;
+  }
+  if (parsedArgs.compareReport) {
+    const baseline = JSON.parse(await readFile(parsedArgs.compareReport[0], 'utf8'));
+    const candidate = JSON.parse(await readFile(parsedArgs.compareReport[1], 'utf8'));
+    console.log(JSON.stringify(compareAuditReports(baseline, candidate), null, 2));
     return;
   }
   const config = await loadConfig(parsedArgs.config);
