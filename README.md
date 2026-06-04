@@ -40,6 +40,28 @@ Stream mode:
 node ./dist/cli.js --base-url "https://gateway.example.com" --model "gpt-4.1-mini" --stream
 ```
 
+Dry run without sending a request:
+
+```bash
+node ./dist/cli.js \
+  --base-url "https://gateway.example.com" \
+  --model "gpt-4.1-mini" \
+  --dry-run
+```
+
+## Config File
+
+You can use a safe JSON config file for non-secret options:
+
+```bash
+cp llm-gateway-audit.config.example.json llm-gateway-audit.config.json
+node ./dist/cli.js --config llm-gateway-audit.config.json --prompt "Say hello."
+```
+
+Config files may contain `base_url`, `api_key_env`, `model`, `repeat`, `stream`, `timeout_ms`, and `out`.
+
+Config files must not contain real API keys, prompts, tokens, messages, or authorization headers. The CLI rejects sensitive config fields such as `api_key`, `prompt`, `token`, and `messages`.
+
 ## What It Checks
 
 - Requested model vs response `model`
@@ -68,6 +90,15 @@ The suspicious score is evidence-oriented and intentionally conservative. Each r
 | Missing transparency metadata such as request id header or `system_fingerprint` | 5 |
 
 Reports include risk reason, recommended action, and false-positive notes for each finding.
+
+## Sample Reports
+
+Redacted examples are available in [`examples/reports`](examples/reports):
+
+- Honest gateway
+- Model mismatch
+- Missing usage
+- Fake stream
 
 ## Privacy Boundary
 

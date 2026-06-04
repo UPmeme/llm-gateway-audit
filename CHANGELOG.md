@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 - 2026-06-05
+
+- Added `--dry-run` to print a redacted request plan without sending a request.
+- Added safe JSON config file support with sensitive-field rejection.
+- Added `llm-gateway-audit.config.example.json`.
+- Added redacted sample reports for honest, model mismatch, missing usage, and fake stream scenarios.
+- Added rule-level fixture tests for scoring metadata, usage inconsistency, missing model metadata, empty streams, and URL redaction.
+- Updated documentation for config files, dry-run, and sample reports.
+
 ## 0.1.1 - 2026-06-04
 
 - Added a TypeScript build pipeline with `npm run build`, `npm run typecheck`, and `npm run verify`.

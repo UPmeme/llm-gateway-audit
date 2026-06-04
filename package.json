@@ -1,6 +1,6 @@
 {
   "name": "llm-gateway-audit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Audit OpenAI-compatible LLM gateways for transparency and suspicious response metadata.",
   "type": "module",
   "bin": {
@@ -9,16 +9,18 @@
   "files": [
     "dist",
     "src",
+    "examples",
     "README.md",
     "README.zh-CN.md",
     "SECURITY.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "llm-gateway-audit.config.example.json"
   ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "node test/mock-gateway.test.js",
+    "test": "node test/run-tests.js",
     "verify": "npm run build && npm test",
     "start": "node ./dist/cli.js",
     "audit": "node ./dist/cli.js"

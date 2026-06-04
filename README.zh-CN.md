@@ -40,6 +40,28 @@ stream 模式：
 node ./dist/cli.js --base-url "https://gateway.example.com" --model "gpt-4.1-mini" --stream
 ```
 
+dry-run，不发送真实请求：
+
+```bash
+node ./dist/cli.js \
+  --base-url "https://gateway.example.com" \
+  --model "gpt-4.1-mini" \
+  --dry-run
+```
+
+## 配置文件
+
+可以用安全 JSON 配置文件保存非敏感参数：
+
+```bash
+cp llm-gateway-audit.config.example.json llm-gateway-audit.config.json
+node ./dist/cli.js --config llm-gateway-audit.config.json --prompt "Say hello."
+```
+
+配置文件可以包含 `base_url`、`api_key_env`、`model`、`repeat`、`stream`、`timeout_ms` 和 `out`。
+
+配置文件不能包含真实 API key、prompt、token、messages 或 authorization header。CLI 会拒绝 `api_key`、`prompt`、`token`、`messages` 等敏感字段。
+
 ## 首版检查项
 
 - 请求模型与响应 `model` 是否一致
@@ -69,6 +91,15 @@ suspicious score 是基于证据的保守评分。每次 run 会累加 finding s
 | 缺少 request id header、`system_fingerprint` 等透明度信息 | 5 |
 
 每个 finding 会包含 risk reason、recommended action 和 false-positive notes。
+
+## 示例报告
+
+redacted 示例在 [`examples/reports`](examples/reports)：
+
+- honest gateway
+- model mismatch
+- missing usage
+- fake stream
 
 ## 隐私边界
 
