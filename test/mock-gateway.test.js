@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { runAudit } from '../dist/audit.js';
+import { redactUrl, renderMarkdown, runAudit } from '../dist/audit.js';
 
 let server;
 let baseUrl;
@@ -104,5 +104,34 @@ describe('mock gateway audit', () => {
     const report = await runAudit(options({ stream: true }));
     assert.equal(report.runs[0].stream.malformedChunks, 1);
     assert.ok(report.runs[0].findings.some((item) => item.code === 'stream_malformed_chunks'));
+  });
+
+  it('redacts prompts, API keys, and sensitive base_url parts from reports', async () => {
+    mode = 'honest';
+    const secretPrompt = 'private prompt should never appear in reports';
+    const secretKey = 'test-key-super-secret-value';
+    const report = await runAudit(options({
+      baseUrl: `${baseUrl}?token=secret#fragment`,
+      apiKey: secretKey,
+      prompt: secretPrompt
+    }));
+    const json = JSON.stringify(report);
+    const markdown = renderMarkdown(report);
+    const redactedUrl = redactUrl('https://user:pass@gateway.example.test/v1?token=secret#fragment');
+
+    assert.equal(report.privacy.promptStored, false);
+    assert.equal(report.privacy.apiKeyStored, false);
+    assert.equal(report.privacy.rawResponseBodyStored, false);
+    assert.equal(report.privacy.promptLength, secretPrompt.length);
+    assert.equal(report.target.baseUrl.includes('user:pass'), false);
+    assert.equal(report.target.baseUrl.includes('token=secret'), false);
+    assert.equal(redactedUrl.redacted.includes('user:pass'), false);
+    assert.equal(redactedUrl.redacted.includes('token=secret'), false);
+    assert.equal(redactedUrl.hadCredentials, true);
+    assert.equal(redactedUrl.hadQuery, true);
+    assert.equal(json.includes(secretPrompt), false);
+    assert.equal(json.includes(secretKey), false);
+    assert.equal(markdown.includes(secretPrompt), false);
+    assert.equal(markdown.includes(secretKey), false);
   });
 });

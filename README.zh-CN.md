@@ -14,6 +14,13 @@ node ./dist/cli.js --help
 
 需要 Node.js 20 或更新版本。
 
+## 构建
+
+```bash
+npm install
+npm run build
+```
+
 ## 示例
 
 ```bash
@@ -46,6 +53,23 @@ node ./dist/cli.js --base-url "https://gateway.example.com" --model "gpt-4.1-min
 - `base_url` 隐私与安全风险
 - suspicious score
 
+## 评分
+
+suspicious score 是基于证据的保守评分。每次 run 会累加 finding score，单次最高封顶 100；报告摘要使用所有 run 中最高的分数。
+
+| Signal | Score |
+| --- | ---: |
+| 响应 model 与请求 model 不一致 | 30 |
+| `base_url` 无效或包含账号密码 | 30 |
+| stream chunk malformed 或没有有效 chunk | 25 |
+| non-stream 响应缺少 `usage` | 20 |
+| 远程 `base_url` 未使用 HTTPS | 20 |
+| 缺少响应 `model` 或 token 统计异常 | 15 |
+| 缺少 response id 或 URL query 参数有风险 | 10 |
+| 缺少 request id header、`system_fingerprint` 等透明度信息 | 5 |
+
+每个 finding 会包含 risk reason、recommended action 和 false-positive notes。
+
 ## 隐私边界
 
 默认输出报告会做 redaction：
@@ -64,7 +88,7 @@ node ./dist/cli.js --base-url "https://gateway.example.com" --model "gpt-4.1-min
 ## 测试
 
 ```bash
-npm test
+npm run verify
 ```
 
 测试只使用本地 mock gateway。

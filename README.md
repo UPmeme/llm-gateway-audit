@@ -14,6 +14,13 @@ node ./dist/cli.js --help
 
 Node.js 20 or newer is required.
 
+## Build
+
+```bash
+npm install
+npm run build
+```
+
 ## Usage
 
 ```bash
@@ -45,6 +52,23 @@ node ./dist/cli.js --base-url "https://gateway.example.com" --model "gpt-4.1-min
 - `base_url` privacy and security risk signals
 - Suspicious score based on collected evidence
 
+## Scoring
+
+The suspicious score is evidence-oriented and intentionally conservative. Each run adds finding scores, caps the run at 100, and the report summary uses the highest run score.
+
+| Signal | Score |
+| --- | ---: |
+| Response model differs from requested model | 30 |
+| Invalid `base_url` or embedded credentials | 30 |
+| Malformed or empty stream chunks | 25 |
+| Missing non-stream `usage` | 20 |
+| Remote `base_url` without HTTPS | 20 |
+| Missing response `model` or invalid token accounting | 15 |
+| Missing response id or risky URL query parameters | 10 |
+| Missing transparency metadata such as request id header or `system_fingerprint` | 5 |
+
+Reports include risk reason, recommended action, and false-positive notes for each finding.
+
 ## Privacy Boundary
 
 Reports are redacted by default:
@@ -63,7 +87,7 @@ This tool reports audit evidence, suspicious behavior, transparency gaps, and ri
 ## Test
 
 ```bash
-npm test
+npm run verify
 ```
 
 The test suite uses local mock gateways only.

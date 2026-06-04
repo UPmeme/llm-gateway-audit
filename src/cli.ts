@@ -57,10 +57,27 @@ function parseInteger(value: string, name: string, min: number, max: number): nu
 }
 
 function helpText(): string {
-  return `llm-gateway-audit v0.1.0
+  return `llm-gateway-audit v0.1.1
+
+Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
 Usage:
   llm-gateway-audit --base-url <url> --model <model> [options]
+
+Options:
+  --base-url <url>       Gateway base URL, for example https://example.com
+  --api-key-env <name>   Environment variable containing the API key (default: OPENAI_API_KEY)
+  --model <model>        Requested model name
+  --prompt <text>        Test prompt. The report stores only redacted metadata.
+  --repeat <n>           Number of calls, 1-20 (default: 1)
+  --stream               Use stream mode
+  --non-stream           Use non-stream mode (default)
+  --timeout-ms <n>       Request timeout, 1000-300000 (default: 60000)
+  --out <path>           Output path without extension (default: reports/audit-<timestamp>)
+  --help                 Show help
+
+Boundary:
+  Reports contain evidence, suspicious score, and transparency risks. They cannot definitively prove the real model identity.
 `;
 }
 

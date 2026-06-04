@@ -9,6 +9,114 @@ const REQUEST_ID_HEADERS = [
   'x-amzn-requestid'
 ];
 
+export const SCORING_RUBRIC = [
+  { code: 'model_mismatch', score: 30, severity: 'high', description: 'Response model differs from requested model.' },
+  { code: 'base_url_embedded_credentials', score: 30, severity: 'high', description: 'base_url contained username or password material.' },
+  { code: 'base_url_invalid', score: 30, severity: 'high', description: 'base_url is not a valid URL.' },
+  { code: 'stream_malformed_chunks', score: 25, severity: 'high', description: 'Stream contained malformed SSE JSON chunks.' },
+  { code: 'stream_no_chunks', score: 25, severity: 'high', description: 'Stream completed without valid chunks.' },
+  { code: 'usage_missing', score: 20, severity: 'medium', description: 'Non-stream response did not include usage.' },
+  { code: 'base_url_not_https', score: 20, severity: 'high', description: 'Remote base_url does not use HTTPS.' },
+  { code: 'response_model_missing', score: 15, severity: 'medium', description: 'Response did not include a model field.' },
+  { code: 'usage_token_fields_invalid', score: 15, severity: 'medium', description: 'Usage token fields are missing, negative, or non-integer.' },
+  { code: 'usage_total_inconsistent', score: 15, severity: 'medium', description: 'Usage total does not match prompt plus completion tokens.' },
+  { code: 'latency_very_high', score: 15, severity: 'medium', description: 'Request latency exceeded 30 seconds.' },
+  { code: 'base_url_query_present', score: 10, severity: 'medium', description: 'base_url contained query parameters.' },
+  { code: 'response_id_missing', score: 10, severity: 'medium', description: 'Response id is missing.' },
+  { code: 'system_fingerprint_missing', score: 5, severity: 'info', description: 'system_fingerprint is missing.' },
+  { code: 'request_id_header_missing', score: 5, severity: 'info', description: 'No recognizable request id header was returned.' },
+  { code: 'latency_high', score: 5, severity: 'low', description: 'Request latency exceeded 10 seconds.' },
+  { code: 'third_party_gateway', score: 0, severity: 'info', description: 'Third-party gateway review reminder.' }
+];
+
+const FINDING_GUIDANCE = {
+  model_mismatch: {
+    riskReason: 'A model field mismatch is direct transparency evidence that the gateway returned metadata different from the request.',
+    recommendedAction: 'Repeat the audit with stream and non-stream modes, then ask the gateway operator to explain routing and model alias behavior.',
+    falsePositiveNotes: 'Some gateways intentionally map aliases to canonical model names; verify whether the provider documents that mapping.'
+  },
+  base_url_invalid: {
+    riskReason: 'An invalid URL prevents a reliable audit target from being identified.',
+    recommendedAction: 'Correct the base_url and rerun the audit.',
+    falsePositiveNotes: 'Shell quoting mistakes can produce invalid URLs.'
+  },
+  base_url_not_https: {
+    riskReason: 'HTTP can expose prompts, metadata, and authorization headers on the network path.',
+    recommendedAction: 'Use HTTPS for remote gateways, or restrict testing to trusted local development endpoints.',
+    falsePositiveNotes: 'Localhost and 127.0.0.1 are treated as development endpoints and are not scored here.'
+  },
+  base_url_embedded_credentials: {
+    riskReason: 'Credentials embedded in URLs are easy to leak through shell history, logs, screenshots, and reports.',
+    recommendedAction: 'Move secrets to environment variables and rotate any credential that may have been exposed.',
+    falsePositiveNotes: 'Some URLs use username-like routing tokens; treat them as sensitive unless proven otherwise.'
+  },
+  base_url_query_present: {
+    riskReason: 'Query strings may contain routing hints, tenant identifiers, or credentials that are easy to leak.',
+    recommendedAction: 'Remove query parameters from base_url and pass configuration through safer documented channels.',
+    falsePositiveNotes: 'Some gateways require benign query parameters, but they should still be reviewed before sharing reports.'
+  },
+  third_party_gateway: {
+    riskReason: 'Third-party gateways can log, route, transform, or retain requests outside the original model provider.',
+    recommendedAction: 'Review privacy policy, retention, upstream provider routing, and whether prompts are used for training or analytics.',
+    falsePositiveNotes: 'This is informational and does not imply suspicious behavior by itself.'
+  },
+  response_model_missing: {
+    riskReason: 'Missing model metadata reduces transparency and makes requested-vs-returned model comparison impossible.',
+    recommendedAction: 'Ask the gateway operator whether model metadata is intentionally omitted and compare against provider documentation.',
+    falsePositiveNotes: 'Some nonstandard compatible APIs omit this field even when routing honestly.'
+  },
+  usage_missing: {
+    riskReason: 'Missing usage prevents independent review of token accounting and billing-related behavior.',
+    recommendedAction: 'Repeat with non-stream mode and request documented usage reporting from the gateway operator.',
+    falsePositiveNotes: 'Some providers omit usage for streaming or special endpoints; this finding only scores non-stream responses.'
+  },
+  usage_token_fields_invalid: {
+    riskReason: 'Invalid token fields make accounting unreliable.',
+    recommendedAction: 'Capture redacted examples and compare against the provider schema.',
+    falsePositiveNotes: 'Schema variants can use different field names, but OpenAI-compatible chat completions should expose these fields when usage is present.'
+  },
+  usage_total_inconsistent: {
+    riskReason: 'Inconsistent totals can indicate accounting bugs or gateway-side transformation.',
+    recommendedAction: 'Repeat multiple times and compare with provider dashboard billing if available.',
+    falsePositiveNotes: 'Provider-specific hidden reasoning or cached token fields can complicate direct totals; inspect schema details.'
+  },
+  response_id_missing: {
+    riskReason: 'Missing response ids make incident follow-up and provider-side tracing harder.',
+    recommendedAction: 'Ask for request/response id support or preserve gateway logs locally with secrets redacted.',
+    falsePositiveNotes: 'Some small compatible servers do not implement ids.'
+  },
+  system_fingerprint_missing: {
+    riskReason: 'Missing fingerprints reduce reproducibility and backend transparency.',
+    recommendedAction: 'Treat as a transparency gap, not standalone evidence of model substitution.',
+    falsePositiveNotes: 'Many providers legitimately omit system_fingerprint.'
+  },
+  request_id_header_missing: {
+    riskReason: 'Missing request id headers reduce traceability across gateway and provider support.',
+    recommendedAction: 'Check whether another documented request id header is available and consider adding it to the tool.',
+    falsePositiveNotes: 'Some gateways expose ids only in body fields.'
+  },
+  latency_high: {
+    riskReason: 'High latency can indicate routing, queueing, retries, or upstream fallback.',
+    recommendedAction: 'Repeat with more samples and compare against direct provider calls from the same network.',
+    falsePositiveNotes: 'Network congestion and cold starts can cause benign latency spikes.'
+  },
+  latency_very_high: {
+    riskReason: 'Very high latency can indicate retries, hidden fallback, overloaded gateways, or remote routing issues.',
+    recommendedAction: 'Repeat with more samples, inspect gateway status, and compare direct-provider latency.',
+    falsePositiveNotes: 'Long prompts, large completions, and temporary provider incidents can be benign causes.'
+  },
+  stream_malformed_chunks: {
+    riskReason: 'Malformed SSE chunks can break client compatibility and may indicate nonstandard stream transformation.',
+    recommendedAction: 'Save the redacted audit report and compare stream behavior against OpenAI-compatible SSE format.',
+    falsePositiveNotes: 'Some gateways send comments or keepalive lines; those should not be counted as malformed unless JSON data chunks are invalid.'
+  },
+  stream_no_chunks: {
+    riskReason: 'A stream that completes without valid chunks is not useful for compatible streaming clients.',
+    recommendedAction: 'Retry and inspect whether the gateway buffers responses or disables streaming.',
+    falsePositiveNotes: 'Immediate upstream errors may produce empty streams; compare status code and headers.'
+  }
+};
+
 export function redactSecret(value) {
   if (!value) return null;
   if (value.length <= 8) return '[redacted]';
@@ -66,7 +174,12 @@ export function classifyBaseUrlRisk(rawUrl) {
 }
 
 export function finding(code, severity, score, message, evidence = {}) {
-  return { code, severity, score, message, evidence };
+  const guidance = FINDING_GUIDANCE[code] ?? {
+    riskReason: 'This signal may reduce gateway transparency.',
+    recommendedAction: 'Review the redacted evidence and repeat the audit if the result matters.',
+    falsePositiveNotes: 'Provider-specific behavior may explain this finding.'
+  };
+  return { code, severity, score, message, evidence, ...guidance };
 }
 
 export function scoreFindings(findings) {
@@ -162,7 +275,7 @@ export async function callChatCompletion(options) {
     headers: {
       'authorization': `Bearer ${options.apiKey}`,
       'content-type': 'application/json',
-      'user-agent': 'llm-gateway-audit/0.1.0'
+      'user-agent': 'llm-gateway-audit/0.1.1'
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(options.timeoutMs)
@@ -259,7 +372,7 @@ export async function runAudit(options) {
   const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
   return {
     tool: 'llm-gateway-audit',
-    version: '0.1.0',
+    version: '0.1.1',
     generatedAt: new Date().toISOString(),
     privacy: {
       promptStored: false,
@@ -279,7 +392,11 @@ export async function runAudit(options) {
       stream: options.stream,
       suspiciousScore: aggregateScore,
       riskLevel: scoreFindings([{ score: aggregateScore }]).level,
-      caveat: 'This audit reports suspicious evidence and transparency gaps. It does not guarantee proof of the real model identity.'
+      caveat: 'This audit reports suspicious evidence and transparency gaps. It cannot definitively prove the real model identity.',
+      scoring: {
+        method: 'Add finding scores per run, cap each run at 100, and use the maximum run score as the summary score.',
+        rubric: SCORING_RUBRIC
+      }
     },
     runs
   };
@@ -304,7 +421,7 @@ export function renderMarkdown(report) {
   lines.push(`Mode: ${report.summary.stream ? 'stream' : 'non-stream'}`);
   lines.push(`Suspicious score: **${report.summary.suspiciousScore}/100** (${report.summary.riskLevel})`);
   lines.push('');
-  lines.push('> This audit reports suspicious evidence and transparency gaps. It does not guarantee proof of the real model identity.');
+  lines.push('> This audit reports suspicious evidence and transparency gaps. It cannot definitively prove the real model identity.');
   lines.push('');
   lines.push('## Privacy');
   lines.push('');
@@ -327,8 +444,19 @@ export function renderMarkdown(report) {
     } else {
       for (const item of run.findings) {
         lines.push(`- [${item.severity}] ${item.code}: ${item.message}`);
+        lines.push(`  - Risk reason: ${item.riskReason}`);
+        lines.push(`  - Recommended action: ${item.recommendedAction}`);
+        lines.push(`  - False positive notes: ${item.falsePositiveNotes}`);
       }
     }
+  }
+  lines.push('');
+  lines.push('## Scoring Rubric');
+  lines.push('');
+  lines.push('| Code | Severity | Score | Description |');
+  lines.push('| --- | --- | ---: | --- |');
+  for (const item of report.summary.scoring.rubric) {
+    lines.push(`| ${item.code} | ${item.severity} | ${item.score} | ${item.description} |`);
   }
   lines.push('');
   return `${lines.join('\n')}\n`;
