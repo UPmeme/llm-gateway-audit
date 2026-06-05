@@ -4,6 +4,7 @@ import { compareAuditReports, runAudit, validateAuditReport, writeReports, redac
 
 interface CliArgs {
   help?: boolean;
+  version?: boolean;
   baseUrl?: string;
   apiKeyEnv: string;
   model?: string;
@@ -32,6 +33,7 @@ function parseArgs(argv: string[]): CliArgs {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') return { ...args, help: true };
+    if (arg === '--version' || arg === '-v') return { ...args, version: true };
     if (arg === '--dry-run') {
       args.dryRun = true;
       continue;
@@ -159,7 +161,7 @@ function parseInteger(value: string, name: string, min: number, max: number): nu
 }
 
 function helpText(): string {
-  return `llm-gateway-audit v0.2.2
+  return `llm-gateway-audit v0.2.3
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -183,6 +185,7 @@ Options:
                          Compare two redacted JSON audit reports without sending requests.
   --validate-report <report.json>
                          Validate a redacted JSON audit report before sharing it.
+  --version              Show version.
   --help                 Show help
 
 Boundary:
@@ -195,6 +198,10 @@ async function main(): Promise<void> {
   const parsedArgs = parseArgs(argv);
   if (parsedArgs.help) {
     console.log(helpText());
+    return;
+  }
+  if (parsedArgs.version) {
+    console.log('0.2.3');
     return;
   }
   if (parsedArgs.compareReport) {

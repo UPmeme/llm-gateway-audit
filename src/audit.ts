@@ -286,7 +286,7 @@ export async function callChatCompletion(options) {
     headers: {
       'authorization': `Bearer ${options.apiKey}`,
       'content-type': 'application/json',
-      'user-agent': 'llm-gateway-audit/0.2.2'
+      'user-agent': 'llm-gateway-audit/0.2.3'
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(options.timeoutMs)
@@ -383,7 +383,7 @@ export async function runAudit(options) {
   const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
   return {
     tool: 'llm-gateway-audit',
-    version: '0.2.2',
+    version: '0.2.3',
     schemaVersion: 'audit-report.v1',
     generatedAt: new Date().toISOString(),
     privacy: {

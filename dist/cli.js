@@ -15,6 +15,8 @@ function parseArgs(argv) {
         const arg = argv[i];
         if (arg === '--help' || arg === '-h')
             return { ...args, help: true };
+        if (arg === '--version' || arg === '-v')
+            return { ...args, version: true };
         if (arg === '--dry-run') {
             args.dryRun = true;
             continue;
@@ -169,7 +171,7 @@ function parseInteger(value, name, min, max) {
     return parsed;
 }
 function helpText() {
-    return `llm-gateway-audit v0.2.2
+    return `llm-gateway-audit v0.2.3
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -193,6 +195,7 @@ Options:
                          Compare two redacted JSON audit reports without sending requests.
   --validate-report <report.json>
                          Validate a redacted JSON audit report before sharing it.
+  --version              Show version.
   --help                 Show help
 
 Boundary:
@@ -204,6 +207,10 @@ async function main() {
     const parsedArgs = parseArgs(argv);
     if (parsedArgs.help) {
         console.log(helpText());
+        return;
+    }
+    if (parsedArgs.version) {
+        console.log('0.2.3');
         return;
     }
     if (parsedArgs.compareReport) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 - 2026-06-05
+
+- Added `--version` / `-v`.
+- Added `docs/roadmap.md`.
+- Added `docs/field-validation-log-template.md`.
+- Linked roadmap and validation template from README files.
+
 ## 0.2.2 - 2026-06-05
 
 - Added `--validate-report <report.json>` for pre-sharing report validation.

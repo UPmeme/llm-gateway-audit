@@ -137,6 +137,11 @@ node ./dist/cli.js --validate-report reports/gateway.json
 
 Before npm publishing, use [`docs/npm-publish-checklist.md`](docs/npm-publish-checklist.md).
 
+Project planning and real-world validation templates:
+
+- [`docs/roadmap.md`](docs/roadmap.md)
+- [`docs/field-validation-log-template.md`](docs/field-validation-log-template.md)
+
 ## Privacy Boundary
 
 Reports are redacted by default:

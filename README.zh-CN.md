@@ -138,6 +138,11 @@ node ./dist/cli.js --validate-report reports/gateway.json
 
 npm 发布前使用 [`docs/npm-publish-checklist.md`](docs/npm-publish-checklist.md)。
 
+项目路线图和真实验证模板：
+
+- [`docs/roadmap.md`](docs/roadmap.md)
+- [`docs/field-validation-log-template.md`](docs/field-validation-log-template.md)
+
 ## 隐私边界
 
 默认输出报告会做 redaction：
