@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { access, readFile } from 'node:fs/promises';
-import { compareAuditReports, runAudit, validateAuditReport, writeReports, redactUrl } from './audit.js';
+import { compareAuditReports, runAudit, validateAuditReport, writeReports, redactUrl, resolveChatCompletionsEndpoint } from './audit.js';
 
 interface CliArgs {
   help?: boolean;
@@ -161,7 +161,7 @@ function parseInteger(value: string, name: string, min: number, max: number): nu
 }
 
 function helpText(): string {
-  return `llm-gateway-audit v0.2.3
+  return `llm-gateway-audit v0.2.5
 
 Audit an OpenAI-compatible /v1/chat/completions gateway for suspicious transparency gaps.
 
@@ -201,7 +201,7 @@ async function main(): Promise<void> {
     return;
   }
   if (parsedArgs.version) {
-    console.log('0.2.3');
+    console.log('0.2.5');
     return;
   }
   if (parsedArgs.compareReport) {
@@ -231,7 +231,7 @@ async function main(): Promise<void> {
     const url = redactUrl(args.baseUrl);
     const endpoint = url.redacted === '[invalid-url]'
       ? '[invalid-url]'
-      : new URL('/v1/chat/completions', url.redacted.endsWith('/') ? url.redacted : `${url.redacted}/`).toString();
+      : resolveChatCompletionsEndpoint(url.redacted);
     console.log(JSON.stringify({
       mode: 'dry-run',
       requestSent: false,

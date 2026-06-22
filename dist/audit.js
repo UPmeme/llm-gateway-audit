@@ -116,9 +116,7 @@ const FINDING_GUIDANCE = {
 export function redactSecret(value) {
     if (!value)
         return null;
-    if (value.length <= 8)
-        return '[redacted]';
-    return `${value.slice(0, 3)}...[redacted]...${value.slice(-4)}`;
+    return '[redacted-secret]';
 }
 export function redactUrl(rawUrl) {
     try {
@@ -269,7 +267,7 @@ export function extractHeaders(headers) {
     };
 }
 export async function callChatCompletion(options) {
-    const endpoint = new URL('/v1/chat/completions', ensureTrailingSlash(options.baseUrl)).toString();
+    const endpoint = resolveChatCompletionsEndpoint(options.baseUrl);
     const body = {
         model: options.model,
         messages: [{ role: 'user', content: options.prompt }],
@@ -281,7 +279,7 @@ export async function callChatCompletion(options) {
         headers: {
             'authorization': `Bearer ${options.apiKey}`,
             'content-type': 'application/json',
-            'user-agent': 'llm-gateway-audit/0.2.3'
+            'user-agent': 'llm-gateway-audit/0.2.5'
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(options.timeoutMs)
@@ -381,7 +379,7 @@ export async function runAudit(options) {
     const aggregateScore = Math.max(...runs.map((run) => run.risk.score), 0);
     return {
         tool: 'llm-gateway-audit',
-        version: '0.2.3',
+        version: '0.2.5',
         schemaVersion: 'audit-report.v1',
         generatedAt: new Date().toISOString(),
         privacy: {
@@ -470,8 +468,22 @@ export function renderMarkdown(report) {
     lines.push('');
     return `${lines.join('\n')}\n`;
 }
-function ensureTrailingSlash(value) {
-    return value.endsWith('/') ? value : `${value}/`;
+export function resolveChatCompletionsEndpoint(baseUrl) {
+    const parsed = new URL(baseUrl);
+    parsed.search = '';
+    parsed.hash = '';
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const lastTwo = parts.slice(-2).join('/');
+    if (lastTwo !== 'chat/completions') {
+        if (parts.at(-1) === 'v1') {
+            parts.push('chat', 'completions');
+        }
+        else {
+            parts.push('v1', 'chat', 'completions');
+        }
+    }
+    parsed.pathname = `/${parts.join('/')}`;
+    return parsed.toString();
 }
 export function compareAuditReports(baseline, candidate) {
     const baselineCodes = collectFindingCodes(baseline);

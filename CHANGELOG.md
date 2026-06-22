@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.5 - 2026-06-23
+
+- Changed API key redaction to a fixed `[redacted-secret]` marker so reports do not retain secret prefixes or suffixes.
+- Fixed report validation false positives for redacted OpenRouter-style keys.
+
+## 0.2.4 - 2026-06-22
+
+- Fixed endpoint resolution for path-prefixed OpenAI-compatible gateways such as OpenRouter.
+- Updated dry-run output to preserve gateway path prefixes when showing the chat completions endpoint.
+- Added regression coverage for OpenAI, OpenRouter, proxy-prefix, and full-endpoint base URLs.
+
 ## 0.2.3 - 2026-06-05
 
 - Added `--version` / `-v`.

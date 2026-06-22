@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { analyzeCompletion, compareAuditReports, redactUrl, SCORING_RUBRIC, validateAuditReport } from '../dist/audit.js';
+import { analyzeCompletion, compareAuditReports, redactUrl, resolveChatCompletionsEndpoint, SCORING_RUBRIC, validateAuditReport } from '../dist/audit.js';
 import { providerFixtures } from './provider-fixtures.js';
 
 describe('audit rules and fixtures', () => {
@@ -82,6 +82,29 @@ describe('audit rules and fixtures', () => {
     assert.equal(result.hadQuery, true);
   });
 
+  it('resolves chat completion endpoints while preserving gateway path prefixes', () => {
+    assert.equal(
+      resolveChatCompletionsEndpoint('https://api.openai.com'),
+      'https://api.openai.com/v1/chat/completions'
+    );
+    assert.equal(
+      resolveChatCompletionsEndpoint('https://api.openai.com/v1'),
+      'https://api.openai.com/v1/chat/completions'
+    );
+    assert.equal(
+      resolveChatCompletionsEndpoint('https://openrouter.ai/api/v1'),
+      'https://openrouter.ai/api/v1/chat/completions'
+    );
+    assert.equal(
+      resolveChatCompletionsEndpoint('https://gateway.example.test/proxy'),
+      'https://gateway.example.test/proxy/v1/chat/completions'
+    );
+    assert.equal(
+      resolveChatCompletionsEndpoint('https://gateway.example.test/v1/chat/completions?token=secret#fragment'),
+      'https://gateway.example.test/v1/chat/completions'
+    );
+  });
+
   it('compares redacted audit reports', () => {
     const baseline = {
       schemaVersion: 'audit-report.v1',
@@ -124,7 +147,7 @@ describe('audit rules and fixtures', () => {
         baseUrl: 'https://gateway.example.com',
         baseUrlHost: 'gateway.example.com',
         apiKeyEnv: 'OPENAI_API_KEY',
-        apiKey: 'tes...[redacted]...alue',
+        apiKey: '[redacted-secret]',
         model: 'gpt-4.1-mini'
       },
       summary: { suspiciousScore: 0, riskLevel: 'low' },
